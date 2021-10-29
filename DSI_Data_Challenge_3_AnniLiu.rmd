@@ -14,7 +14,7 @@ output:
 
 [A link to the repository](https://github.com/anniliu1/DSI_Data_Challenge_3.git)
 
-```{r,echo=TRUE}
+```{r,echo = TRUE}
 knitr::opts_chunk$set(
   cache = TRUE,
   error = FALSE,
@@ -30,67 +30,69 @@ knitr::opts_chunk$set(
 
 ### Load libraries and read data
 ```{r}
-## load in the libraries ------------------------------------------------------
+## load in the libraries 
 library(readr)  
 library(tidyverse)
 library(purrr)
 library(Hmisc)
 library(forcats)
 
-## read in the data -----------------------------------------------------------
+## read in the data 
 coffee_ratings <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-07/coffee_ratings.csv')
 
-## disable scientific notation ------------------------------------------------
+## disable scientific notation 
 options(scipen = 999, digits = 2)
 ```
 
 \
 
 ### Functions in Problem 1
-```{r results='asis'}
+```{r results = 'asis'}
 ## function 1: return mean and standard deviation of a vector
 mean_sd <- function(x){
-  c(paste0(## paste mean and standard deviation together
+  c(paste( ## paste mean and standard deviation together
     round(mean(x, na.rm = TRUE), 2), ## calculate mean
-    '(', 
+    ' (', 
     round(sd(x, na.rm = TRUE), 2), ## calculate standard deviation
-    ')'))
+    ')',
+    sep = ''))
 }
 
 ## function 2: use function 1 and return mean and standard deviation of aroma through moisture over a specific grouping as a table
 group_stats_table <- function(data, group_name){
   data %>%
-    group_by(across(all_of(group_name))) %>% ## group data by group_name 
+    group_by(get(group_name)) %>% ## group data by getting the value of object group_name 
     summarise(across(aroma:moisture, mean_sd)) %>% ## calculate mean and standard deviation across columns of aroma to moisture using function 1 mean_sd
-  knitr::kable( ## make table
-    digits = getOption("digits"), ## set digits
-    caption = stringr::str_to_title( ## capitalize caption
-                paste( ## paste string and variable group_name
-                  'mean and standard deviation Of aroma through moisture by', 
-                  gsub('_', ' ', group_name))), ## replace _ with space
-    col.names = c('Group', 'Aroma', 'Flavor', 'Aftertaste', 'Acidity', 'Body', 'Balance', 'Uniformity','Clean up', 'Sweetness', 'Cupper points', 'Moisture'), ## make pleasing column names
-  ) %>% 
-  kableExtra::kable_styling(bootstrap_options = 'hover') %>%  ## stylize table
-  kableExtra::add_header_above(c(" " = 1, "Mean(Standard Deviation)" = 11)) ## add a header
+    knitr::kable( ## make table
+      digits = getOption('digits'), ## set digits
+      caption = stringr::str_to_title( ## capitalize caption
+                  paste( ## paste string and variable group_name
+                    'mean and standard deviation Of aroma through moisture by', 
+                    gsub('_', ' ', group_name))), ## replace _ with space in the group name
+      col.names = c('Group', 'Aroma', 'Flavor', 'Aftertaste', 
+                    'Acidity', 'Body', 'Balance', 'Uniformity',
+                    'Clean Up', 'Sweetness', 'Cupper Points', 'Moisture')) %>% ## make pleasing column names
+    kableExtra::kable_styling(bootstrap_options = 'hover') %>%  ## stylize table
+    kableExtra::add_header_above(c(' ' = 1, 'Mean (Standard Deviation)' = 11)) ## add a header
 }
 
 ## clean coffee ratings data frame
 coffee_ratings_clean <- coffee_ratings %>% 
-  mutate(binned_mean_altitude_meters = if_else( ## create variable that puts all impossible values as NA
+  mutate(altitude_mean_meters = if_else( ## create a variable that puts all impossible values as NA
                                   altitude_mean_meters > 10000,
                                   NA_real_,
                                   altitude_mean_meters)) %>%
-  mutate(binned_mean_altitude_meters = cut2(binned_mean_altitude_meters, g = 5)) %>% ## cut altitude_mean_meters into 5 intervals 
+  mutate(binned_mean_altitude_meters = cut2(altitude_mean_meters, g = 5)) %>% ## cut altitude_mean_meters into 5 intervals 
   select(species, country_of_origin, binned_mean_altitude_meters, aroma:moisture) %>% ## select necessary variables for table production 
-  mutate_if(is.factor, ## put all NAs in factor variable as Missing
+  mutate_if(is.factor, ## put all NAs in factor variable binned_mean_altitude_meters as Missing
             fct_explicit_na,
-            na_level = "Missing") %>%
-  mutate_if(is.character, ## put all NAs in character variable as Missing
+            na_level = 'Missing') %>%
+  mutate_if(is.character, ## put all NAs in character variables species and country_of_origin as Missing
             ~ replace_na(., 'Missing')) 
 
 ## map function: calculate tables for three groups (species, country of origin, binned mean altitude in meters) in one step
 c('species', 'country_of_origin', 'binned_mean_altitude_meters') %>%
-  map(group_stats_table, data = coffee_ratings_clean) ## call group_stats_table() with coffee_ratings_clean data and three groups
+  map(group_stats_table, data = coffee_ratings_clean) ## iterate group_stats_table() with coffee_ratings_clean data and three group names
 ```
 
 ### Functions in Problem 2
@@ -98,40 +100,37 @@ c('species', 'country_of_origin', 'binned_mean_altitude_meters') %>%
 ## function:  plot two variables from a data frame and color by group
 coffee_plot <- function(dataset, varx, vary, group){
 dataset %>%
-  filter(get(varx) > 0 & get(vary) > 0) %>% ## remove outliers
+  rename(binned_mean_altitude = binned_mean_altitude_meters) %>% ## rename binned_mean_altitude_meters into binned_mean_altitude
+  filter(get(varx) > 0 & get(vary) > 0) %>% ## return values of objects varx and vary; remove outliers
   ggplot( ## initialize ggplot object
     mapping = aes(x = get(varx),
                   y = get(vary),
                   color = get(group))) + ## color plot by group
-  geom_point() + ## make scatter plot
-  geom_jitter(alpha = 0.01) + ## add small random variation with alpha blending
-  labs(
-    y = stringr::str_to_title(varx), ## relabel y-axis
-    x = stringr::str_to_title(vary), ## relabel x-axis
-    title = stringr::str_to_title( ## add capitalized title
-              paste( ## paste string and variable
-                    'Relationship between', 
-                    varx, 
-                    'and', 
-                    vary)), 
-        color = stringr::str_to_title(  ## label capitalized legend
-                  gsub('_', ' ', group)) ## replace _ with space
-   ) +
-  theme_classic() + ## use classic plotting style
-  scale_color_brewer(palette = 'OrRd') ## individualize color
+    geom_point() + ## make scatter plot
+    geom_jitter(alpha = 0.01) + ## add small random variation with alpha blending
+    labs(
+      x = stringr::str_to_title(varx), ## relabel x-axis
+      y = stringr::str_to_title(vary), ## relabel y-axis
+      title = stringr::str_to_title( ## add capitalized title
+                paste( ## paste string and variable
+                  'relationship between', 
+                  varx, 
+                  'and', 
+                  vary)), 
+      color = stringr::str_to_title( ## add capitalized legend title
+                gsub('_', ' ', group))) + ## replace _ with space in group name
+    theme_classic() + ## use classic plotting style
+    scale_color_brewer(palette = 'OrRd') ## individualize color
 }
 
 ## pmap function: iterate over a list of function arguments to produce two plots
 args_list <- list( ## create function argument list
-  list(coffee_ratings_clean, coffee_ratings_clean), 
-  list('aroma', 'balance'),
-  list('flavor', 'body'),
-  list('species', 'binned_mean_altitude_meters'))
+              list(coffee_ratings_clean, coffee_ratings_clean), 
+              list('aroma', 'balance'),
+              list('flavor', 'body'),
+              list('species', 'binned_mean_altitude'))
 args_list %>%
   pmap(coffee_plot) ## apply coffee_plot() to a list of data and grouping names  
 ```
 
-\
-<hr>
-\
 
