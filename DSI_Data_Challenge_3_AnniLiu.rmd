@@ -1,7 +1,7 @@
 ---
 title: 'Data Challenge #3'
 author: <font size = 5>Student Anni Liu</font>
-date: <font size = 2>*Due 11:59 pm on October 27, 2021*</font>
+date: <font size = 2>*Due 11:59 pm on October 29, 2021*</font>
 output:
   html_document:
     toc: yes
