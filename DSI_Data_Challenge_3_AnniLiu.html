@@ -342,7 +342,7 @@ coffee_ratings_clean &lt;- coffee_ratings %&gt;%
                                   altitude_mean_meters &gt; 10000,
                                   NA_real_,
                                   altitude_mean_meters)) %&gt;%
-  mutate(binned_mean_altitude_meters = cut2(altitude_mean_meters, g = 5)) %&gt;% ## cut altitude_mean_meters into 5 intervals 
+  mutate(binned_mean_altitude_meters = cut2(altitude_mean_meters, g = 5)) %&gt;% ## cut altitude_mean_meters into five intervals 
   select(species, country_of_origin, binned_mean_altitude_meters, aroma:moisture) %&gt;% ## select necessary variables for table production 
   mutate_if(is.factor, ## put all NAs in factor variable binned_mean_altitude_meters as Missing
             fct_explicit_na,
